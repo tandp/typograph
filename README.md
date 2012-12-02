@@ -5,7 +5,6 @@ Gem for typographing russian texts. Ruby port of [SamDark's Typograph](https://g
 ## TODO
  - implement best opensource russian typograph as ruby gem
   - Port [Typograph](https://github.com/samdark/Typograph) (one of the best opensource russain typographs)
-  - Or implement [typography](https://github.com/varezhka/typography) as a gem
  - make specs, to be able test gem and generate comparision chart like [here](http://www.typograf.ru/flog/)
  - implement english typograph
  - implement typograph for other languages. Implement settings throught YAML
@@ -19,20 +18,22 @@ Gem for typographing russian texts. Ruby port of [SamDark's Typograph](https://g
 
 ## Alternatives
 
+### ruby gems, wrappers for online services - russian
+ - [als_typograf](https://github.com/alsemyonov/als_typograf) wrapper for http://www.artlebedev.ru/tools/typograf/
+ - [typograf_ru](https://github.com/ring0/typograf_ru) wrapper for http://www.typograf.ru/
+
+### ruby gems - russian
+ - [typographer](https://github.com/brain-geek/typographer)
+ - [typography](https://github.com/antonversal/typography)
+ - [typographica](https://github.com/akolosov/typographica)
+
 ### ruby - english
  - [SmartyPants](http://rubydoc.info/gems/redcarpet/2.1.1/Redcarpet/Render/SmartyPants)
  - [rubypants](https://github.com/jmcnevin/rubypants)
 
-### ruby - russian, wrappers for online services
- - [als_typograf](https://github.com/alsemyonov/als_typograf) wrapper for http://www.artlebedev.ru/tools/typograf/
- - [typograf_ru](https://github.com/ring0/typograf_ru) wrapper for http://www.typograf.ru/
-
-### rails plugins (not gems)
- - [typography](https://github.com/varezhka/typography) russian
- - [typography-helper](https://github.com/hunter/typography-helper) english
-
 ### other
  - [habari-typography](https://github.com/ahutchings/habari-typography)
+ - [typography-helper](https://github.com/hunter/typography-helper) english
 
 ## Usage
 
