@@ -66,7 +66,7 @@ module Typograph
         pattern = SAFE_BLOCKS.map do |val|
           val.join('.*')
         end.join('|')
-        Regexp.new("(#{pattern}|<[^>]*[\\s][^>]*>)", Regexp::IGNORECASE | Regexp::MULTILINE | Regexp::FIXEDENCODING)
+        Regexp.new("(#{pattern}|<[^>]*[\\s][^>]*>)", Regexp::IGNORECASE | Regexp::MULTILINE) # | Regexp::FIXEDENCODING)
       end
     end
 
@@ -116,7 +116,7 @@ module Typograph
 
       return '' if str.gsub(/^\s+|\s+$/, '').empty?
 
-      html_tag = '(?:<[^>]+>)' # (?:(?U)<.*>)
+      html_tag = '(?:<.*?>)' # (?:(?U)<.*>)
       hellip = '\.{3,5}'
       
       # Слово
@@ -149,7 +149,7 @@ module Typograph
       # Правила
       rules_strict = {
         # Много пробелов или табуляций -> один пробел.
-        /( |\t|&nbsp;)+/ => ' ',
+        # /( | |\t|&nbsp;)+/ => ' ',
 
         # Убираем лишние пробелы между символами 
         /([,:;.!?]) (?=\1)/ => '\1',
@@ -272,7 +272,7 @@ module Typograph
         /(?<=\d)-(?=\d)/ => sym['ndash'],
 
         # Нельзя оставлять в конце строки предлоги и союзы
-        Regexp.new('(?<=\s|^|[^a-zA-Zа-яА-Я0-9])('+prepos+')(\s+)') => '\1'+sym['nbsp'],
+        Regexp.new('(?<=\\s|^|[^a-zA-Zа-яА-Я0-9])('+prepos+')(\\s+)', Regexp::IGNORECASE) => '\1'+sym['nbsp'],
 
         # Нельзя отрывать частицы бы, ли, же от предшествующего слова, например: как бы, вряд ли, так же.
         /(?<=\S)(\s+)(ж|бы|б|же|ли|ль|либо|или)(?=#{html_tag}*[\s)!?.])/i => sym['nbsp'] + '\2',
@@ -363,33 +363,37 @@ module Typograph
 
       str.gsub!(Regexp.new(quotes.join('|')), '"')
 
+
+      str.gsub!(/( | |\t|&nbsp;)+/, ' ')
+
       rules_quotes = {
         #  Разносим неправильные кавычки
-        /([^"]+)"([а-яa-z]+)"/i => '\1 "\2"',
-        /"([а-яa-z]+)"([а-яa-z]+)/i => '"\1" \2',
+        /([^"][a-zA-Zа-яА-Я]+)"([a-zA-Zа-яА-Я]+)"/ => '\1 "\2"',
+        /"([a-zA-Zа-яА-Я]+)"([a-zA-Zа-яА-Я]+)/ => '"\1" \2',
 
         # Превращаем кавычки в ёлочки. Двойные кавычки склеиваем.
         Regexp.new('(?<=\\s|^|[>(])('+html_tag+'*)('+any_quote+')('+html_tag+'*'+phrase_begin+html_tag+'*)') => '\1'+sym['lquote']+'\3',
         Regexp.new('('+html_tag+'*(?:'+phrase_end+'|[0-9]+)'+html_tag+'*)('+any_quote+')('+html_tag+'*'+phrase_end+html_tag+'*|\\s|[,<-])') => '\1'+sym['rquote']+'\3',
 
-        /(\s|^|-|>)"([а-яa-z])/i => '\1'+sym['lquote']+'\2',
-        /([а-яa-z!])"(\s|$|,|\.|\?|<|-)/i => '\1'+sym['rquote']+'\2'
+        /(\s|^|-|>)"([a-zA-Zа-яА-Я])/ => '\1'+sym['lquote']+'\2',
+        /([a-zA-Zа-яА-Я!])"(\s|$|,|\.|\?|<|-)/ => '\1'+sym['rquote']+'\2'
       }
 
       str = apply_rules(rules_quotes, str)
           
       # Вложенные кавычки.
-      # $i=0; $lev = 5;
-      # while (($i<$lev) && preg_match('~«(?:[^»]*?)«~', $str)){
-      #   $i++;
-      #   $str = preg_replace('~«([^»]*?)«(.*?)»~s', '«$1'.$sym['lquote2'].'$2'.$sym['rquote2'], $str);
-      # }
+      i = 0
+      lev = 5
+      while ((i < lev) && /«(?:[^»]*?)«/ =~ str) do
+        i += 1
+        str.gsub!(/«([^»]*?)«(.*?)»/m, '«\1' + sym['lquote2'] + '\2' + sym['rquote2'])
+      end
 
-      # $i=0;
-      # while (($i++<$lev) && preg_match('~»(?:[^«]*?)»~', $str)){
-      #   $i++;
-      #   $str = preg_replace('~»([^«]*?)»~', $sym['rquote2'].'$1»', $str);
-      # }
+      i = 0
+      while ((i < lev) && /»(?:[^«]*?)»/ =~ str) do
+        i += 2
+        str.gsub!(/»([^«]*?)»/, sym['rquote2'] + '\1»')
+      end
 
       str = apply_rules(rules_strict, str)
       
