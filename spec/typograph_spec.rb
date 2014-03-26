@@ -90,7 +90,7 @@ describe '.process' do
 
   it 'Удаление пробелов внутри скобок' do
     text = 'Текст( ( Внутри ) скобок ).'
-    text_processed = 'Текст((Внутри) скобок).'
+    text_processed = 'Текст ((Внутри) скобок).'
     Typograph.process(text, OPT).should eq text_processed
   end
 
@@ -177,7 +177,7 @@ describe '.process' do
 
   it 'Расстановка правильных «тройных» кавычек' do
     text = 'Она добавила: "И цвет мой самый любимый - "эсмеральда"".'
-    text_processed = 'Она добавила: «И&nbsp;цвет мой самый любимый&nbsp;— &bdquo;эсмеральда&ldquo;».'
+    text_processed = 'Она добавила: «И&nbsp;цвет мой самый любимый&nbsp;— “эсмеральда”».'
     Typograph.process(text, OPT).should eq text_processed
   end
 
@@ -242,8 +242,8 @@ describe '.process' do
   end
 
   it 'Привязка сокращений форм собственности к названиям организаций' do
-    text = 'ООО "Фирма "Терминал", НИИ "ОблСнабВротКомпот"'
-    text_processed = '<nobr>ООО «Фирма «Терминал»</nobr>, <nobr>НИИ «ОблСнабВротКомпот»</nobr>'
+    text = 'ООО "Фирма Терминал", НИИ "ОблСнабВротКомпот"'
+    text_processed = '<nobr>ООО «Фирма Терминал»</nobr>, <nobr>НИИ «ОблСнабВротКомпот»</nobr>'
     Typograph.process(text, OPT).should eq text_processed
   end
 
