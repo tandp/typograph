@@ -425,4 +425,16 @@ describe '.process' do
     Typograph.process(text, OPT).should eq text_processed
   end
 
+  it "should make english and russian quotes in the same string" do
+    text           = '"Quotes" и "Кавычки"'
+    text_processed = '“Quotes” и&nbsp;«Кавычки»'
+    Typograph.process(text, OPT).should eq text_processed
+  end
+
+  it 'Quotes second level' do
+    text          = '"Кавычки "второго уровня"" and "Quotes "second level""'
+    text_processed = "«Кавычки “второго уровня”» and “Quotes ‘second level’”"
+    Typograph.process(text, OPT).should eq text_processed
+  end
+
 end
