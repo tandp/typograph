@@ -437,4 +437,12 @@ describe '.process' do
     Typograph.process(text, OPT).should eq text_processed
   end
 
+  it 'parse error' do
+    text           = "БМК «ПРОСТ»,Библиотека Тургенева приглашают на 2-е заседание дискуссионного клуба 'Дисккуб21'."
+    text_processed = "БМК «ПРОСТ»,Библиотека Тургенева приглашают на&nbsp;2-е заседание дискуссионного клуба «Дисккуб21»."
+    Typograph.process(text, OPT).should eq text_processed
+  end
+
+
+
 end
