@@ -90,7 +90,7 @@ describe '.process' do
 
   it 'Удаление пробелов внутри скобок' do
     text = 'Текст( ( Внутри ) скобок ).'
-    text_processed = 'Текст((Внутри) скобок).'
+    text_processed = 'Текст ((Внутри) скобок).'
     Typograph.process(text, OPT).should eq text_processed
   end
 
@@ -177,7 +177,7 @@ describe '.process' do
 
   it 'Расстановка правильных «тройных» кавычек' do
     text = 'Она добавила: "И цвет мой самый любимый - "эсмеральда"".'
-    text_processed = 'Она добавила: «И&nbsp;цвет мой самый любимый&nbsp;— &bdquo;эсмеральда&ldquo;».'
+    text_processed = 'Она добавила: «И&nbsp;цвет мой самый любимый&nbsp;— “эсмеральда”».'
     Typograph.process(text, OPT).should eq text_processed
   end
 
@@ -242,8 +242,8 @@ describe '.process' do
   end
 
   it 'Привязка сокращений форм собственности к названиям организаций' do
-    text = 'ООО "Фирма "Терминал", НИИ "ОблСнабВротКомпот"'
-    text_processed = '<nobr>ООО «Фирма «Терминал»</nobr>, <nobr>НИИ «ОблСнабВротКомпот»</nobr>'
+    text = 'ООО "Фирма Терминал", НИИ "ОблСнабВротКомпот"'
+    text_processed = '<nobr>ООО «Фирма Терминал»</nobr>, <nobr>НИИ «ОблСнабВротКомпот»</nobr>'
     Typograph.process(text, OPT).should eq text_processed
   end
 
@@ -422,6 +422,18 @@ describe '.process' do
   it "Лишнее тере с 'как' 'то'" do
     text = "Я постараюсь ответить на твой вопрос так просто, как только смогу. Вот мой ответ:"
     text_processed = "Я&nbsp;постараюсь ответить на&nbsp;твой вопрос так просто, как&nbsp;только смогу. Вот мой ответ:"
+    Typograph.process(text, OPT).should eq text_processed
+  end
+
+  it "should make english and russian quotes in the same string" do
+    text           = '"Quotes" и "Кавычки"'
+    text_processed = '“Quotes” и&nbsp;«Кавычки»'
+    Typograph.process(text, OPT).should eq text_processed
+  end
+
+  it 'Quotes second level' do
+    text          = '"Кавычки "второго уровня"" and "Quotes "second level""'
+    text_processed = "«Кавычки “второго уровня”» and “Quotes ‘second level’”"
     Typograph.process(text, OPT).should eq text_processed
   end
 

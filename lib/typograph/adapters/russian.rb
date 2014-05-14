@@ -128,8 +128,8 @@ module Typograph
           # /в(&nbsp;|\s)?т(&nbsp;|\s)?\.?ч(&nbsp;|\s)?\.{0,2}/ => "<nobr>в т. ч.</nobr>",
 
           # Знаки с предшествующим пробелом… нехорошо!
-          /(\p{L}|>|\p{Nd}) +([?!:,;…])/ => '\1\2',
-          /([?!:,;])(\p{L}|<)/ => '\1 \2',
+          # /(\p{L}|>|\p{Nd}) +([?!:,;…])/ => '\1\2',
+          # /([?!:,;])(\p{L}|<)/ => '\1 \2',
           # Для точки отдельно
           /(\p{L})\p{Zs}(?:\.)(\p{Zs}|$)/ => '\1.\2',
           # Но перед кавычками пробелов не ставим
@@ -257,63 +257,57 @@ module Typograph
       end
 
       def process(str)
-        # str = apply_rules(rules_quotes, str) <------- DON'T WORK PROP!!!
         str = apply_rules(@rules_strict, str) #  Сначала применим строгие правила: пробелы, запятые
-        str = quotes(str) #  правильно расставим кавычки
+        str = replace_russian_quotes str
+        str = replace_english_quotes str
         str = apply_rules(@rules_main, str)
         str = apply_rules(@rules_symbols, str)
         str = apply_rules(@rules_braces, str)
       end
 
-      def quotes(text)
-        quot11='«'
-        quot12='»'
-        quot21='«'
-        quot22='»'
-        # quot21='„'
-        # quot22='“'
+      private
 
-        quotes = ['&quot;','&laquo;','&raquo;','«','»','&#171;','&#187;','&#147;','&#132;','&#8222;','&#8220;','„','“','”','‘','’']
-        quotes = Regexp.new quotes.join('|')
-        text.gsub!(quotes, '"') #  Единый тип кавычек
-        text.gsub!('""', '"')
-
-        text.gsub!(/"(\p{^L})/, '»\1') #  Взято из старой реализации
-        text.gsub!(/(\p{^L})"/, '\1«') #  Взято из старой реализации
-
-#       text.gsub!(/([^=]|\A)""(\.{2,4}[а-яА-Я\w\-]+|[а-яА-Я\w\-]+)/, '\1<typo:quot1>"\2') #  Двойных кавычек уже нет
-        text.gsub!(/([^=]|\A)"(\.{2,4}[\p{L}\p{M}]+|[\p{L}\p{M}\-]+)/, '\1<typo:quot1>\2')
-#       text.gsub!(/([а-яА-Я\w\.\-]+)""([\n\.\?\!, \)][^>]{0,1})/, '\1"</typo:quot1>\2') #  Двойных кавычек уже нет
-        text.gsub!(/([\p{L}\p{M}\.\-]+)"([\n\.\?\!, \)][^>]{0,1})/, '\1</typo:quot1>\2')
-        text.gsub!(/(<\/typo:quot1>[\.\?\!]{1,3})"([\n\.\?\!, \)][^>]{0,1})/, '\1</typo:quot1>\2')
-        text.gsub!(/(<typo:quot1>[\p{L}\p{M}\.\- \n]*?)<typo:quot1>(.+?)<\/typo:quot1>/, '\1<typo:quot2>\2</typo:quot2>')
-        text.gsub!(/(<\/typo:quot2>.+?)<typo:quot1>(.+?)<\/typo:quot1>/, '\1<typo:quot2>\2</typo:quot2>')
-        text.gsub!(/(<typo:quot2>.+?<\/typo:quot2>)\.(.+?<typo:quot1>)/, '\1</typo:quot1>.\2')
-        text.gsub!(/(<typo:quot2>.+?<\/typo:quot2>)\.(?!<\/typo:quot1>)/, '\1</typo:quot1>.\2\3\4')
-#       text.gsub!(/""/, '</typo:quot2></typo:quot1>') #  Двойных кавычек уже нет
-        text.gsub!(/(?<=<typo:quot1>)(.+?)<typo:quot2>(.+?)(?!<\/typo:quot2>)/, '\1<typo:quot2>\2')
-#       text.gsub!(/"/, '<typo:quot1>') #  Непонятный хак
-#       text.gsub!(/(<[^>]+)<\/typo:quot\d>/, '\1"') #  Еще более непонятный хак
-
-        text.gsub!(/"$/, '</typo:quot2>') # new
-
-        text.gsub!('<typo:quot1>', quot11)
-        text.gsub!('</typo:quot1>', quot12)
-        text.gsub!('<typo:quot2>', quot21)
-        text.gsub!('</typo:quot2>', quot22)
-
-        text.gsub!(/(^|\s)»(<)/, '\1«\2') # new
-        text.gsub!(/([а-я\w\d,])«(.)/i, '\1 «\2') # new
-        text.gsub!(/» ([:,])/i, '»\1') # new
-        text.gsub!(/«$/, '»') # new
-        text.gsub!(/^»/, '«') # new
-        text.gsub!('.».', '».') # new
-        text.gsub!(/ »(.)/, ' «\1') # new
-        text.gsub!(/^«\s+/, '«') # new
-        text.gsub!(/\s+»$/, '»') # new
-
-        text
+      def replace_russian_quotes(str)
+        left1  = Typograph::Adapter::SPECIAL[:laquo]
+        right1 = Typograph::Adapter::SPECIAL[:raquo]
+        left2  = Typograph::Adapter::SPECIAL[:ldquo]
+        right2 = Typograph::Adapter::SPECIAL[:rdquo]
+        str = replace_quotes str, left1, right1, left2, right2, 'а-яА-Я'
       end
+
+      def replace_english_quotes(str)
+        left1  = Typograph::Adapter::SPECIAL[:ldquo]
+        right1 = Typograph::Adapter::SPECIAL[:rdquo]
+        left2  = Typograph::Adapter::SPECIAL[:lsquo]
+        right2 = Typograph::Adapter::SPECIAL[:rsquo]
+        str = replace_quotes str, left1, right1, left2, right2, 'a-zA-Z'
+      end
+
+      def replace_quotes(str,left1,right1,left2,right2,letters)
+        replace_quotes = lambda do
+          old_str = String.new(str)
+          str.gsub!(Regexp.new("(\"|\')([#{letters}].*?[^\\s])\\1", Regexp::MULTILINE | Regexp::IGNORECASE)) do |match|
+            inside, before, after = $2, $`, $'
+            if after.match(/^([^<]+>|>)/) || before.match(/<[^>]+$/) #inside tag
+              match
+            else
+              "#{left1}#{inside}#{right1}"
+            end
+          end
+          old_str != str
+        end
+        while replace_quotes.call do end
+        replace_second_level_quotes = lambda do
+          str.gsub! Regexp.new("#{left1}(.*)#{left1}(.*)#{right1}(.*)#{right1}", Regexp::MULTILINE | Regexp::IGNORECASE) do |match|
+            "#{left1}#{$1}#{left2}#{$2}#{right2}#{$3}#{right1}"
+          end
+        end
+        while replace_second_level_quotes.call do end
+        str
+      end
+
+
+
     end
   end
 end
