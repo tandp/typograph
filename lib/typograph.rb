@@ -1,7 +1,8 @@
 require "typograph/version"
-require "typograph/processor"
 require "typograph/adapter"
-require "typograph/adapters/russian"
+require "typograph/processors/quotes"
+require "typograph/processors/russian_grammar"
+require "typograph/processor"
 
 module Typograph
   def self.process(text="", options={})

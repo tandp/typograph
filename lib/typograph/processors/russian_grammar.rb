@@ -1,8 +1,8 @@
 # encoding: utf-8
 
 module Typograph
-  module Adapters
-    class Russian < Adapter
+  module Processors
+    class RussianGrammar
 
       OPTIONS = {
         :ndash => '–',
@@ -14,27 +14,55 @@ module Typograph
       def initialize(options={})
         @options = OPTIONS.dup.merge(options)
 
-        ndash = @options[:ndash]
-        mdash = @options[:mdash]
-        minus = @options[:minus]
+        @ndash = @options[:ndash]
+        @mdash = @options[:mdash]
+        @minus = @options[:minus]
 
-        abbr = 'ООО|ОАО|ЗАО|ЧП|ИП|НПФ|НИИ|ООО\p{Zs}ТПК'
-        prepos = 'а|в|во|вне|и|к|о|с|у|со|об|обо|от|ото|то|на|не|ни|но|из|изо|за|уж|на|по|подо|пред|предо|про|над|надо|как|без|безо|да|до|там|ещё|их|ко|меж|между|перед|передо|около|через|сквозь|при|я'
+        @abbr       = 'ООО|ОАО|ЗАО|ЧП|ИП|НПФ|НИИ|ООО\p{Zs}ТПК'
+        @prepos     = 'а|в|во|вне|и|к|о|с|у|со|об|обо|от|ото|то|на|не|ни|но|из|изо|за|уж|на|по|подо|пред|предо|про|над|надо|как|без|безо|да|до|там|ещё|их|ко|меж|между|перед|передо|около|через|сквозь|при|я'
         # что|для|или|под
-        metrics = 'мм|см|м|км'
-        measure = "#{metrics}|г|кг|б|кб|мб|гб|dpi|px"
-        shortages = 'г|гр|тов|пос|c|ул|д|пер|м|зам|им|бул'
-        money = 'руб\.|долл\.|евро|у\.е\.'
-        countables = 'млн|тыс'
+        @metrics    = 'мм|см|м|км'
+        @measure    = "#{@metrics}|г|кг|б|кб|мб|гб|dpi|px"
+        @shortages  = 'г|гр|тов|пос|c|ул|д|пер|м|зам|им|бул'
+        @money      = 'руб\.|долл\.|евро|у\.е\.'
+        @countables = 'млн|тыс'
 
-        @rules_strict = {
+        @rules_strict  = rules_strict
+        @rules_symbols = rules_symbols
+        @rules_braces  = rules_braces
+        @rules_main    = rules_main
+        @rules_main[/(\s)(\S+)\Z/] = '&nbsp;\2' if options[:orphan]
+
+      end
+
+      def process(str)
+        str = apply_rules @rules_strict, str #  Сначала применим строгие правила: пробелы, запятые
+        str = apply_rules @rules_symbols, str
+        str = apply_rules @rules_main, str
+        str = apply_rules @rules_braces, str
+      end
+
+      private
+
+      def apply_rules(rules, str)
+        res = str.dup
+        rules.each do |rul, rep|
+          str.gsub!(rul, rep)
+        end
+        str
+      end
+
+      def rules_strict
+        {
           # Много пробелов или табуляций -> один пробел
           /( |\t)+/ => ' ',
           # Запятые после «а» и «но». Если уже есть — не ставим.
           /([а-яA-я0-9])\s(а|но)\s/ => '\1, \2 ',
         }
+      end
 
-        @rules_symbols = {
+      def rules_symbols
+        {
           # Лишние знаки.
           # TODO: сделать красиво
           /([^!])!!([^!])/ => '\1!\2',
@@ -98,25 +126,20 @@ module Typograph
           /([^-]|^)->/ => '\1→',
           /<-([^-]|$)/ => '←\1'
         }
+      end
 
-        @rules_quotes = {
-          # Разносим неправильные кавычки
-          /([^"]\p{L}+)"(\p{L}+)"/ => '\1 "\2"',
-          /"(\p{L}+)"(\p{L}+)/ => '"\1" \2',
-
-          # Превращаем кавычки в ёлочки.
-          /(\p{^L})?"([^"]*)"(\p{^L})?/ => '\1«\2»\3'
-        }
-
-        @rules_braces = {
+      def rules_braces
+        {
           # Оторвать скобку от слова
           /(\p{L})\(/ => '\1 (',
           # Слепляем скобки со словами
           /\( /m => '(',
           / \)/m => ')'
         }
+      end
 
-        @rules_main = {
+      def rules_main
+        {
           # Конфликт с «газо- и электросварка»
           # Оторвать тире от слова
           # /(\p{L})- / => '\1 - ',
@@ -129,7 +152,7 @@ module Typograph
           # /в(&nbsp;|\s)?т(&nbsp;|\s)?\.?ч(&nbsp;|\s)?\.{0,2}/ => "<nobr>в т. ч.</nobr>",
 
           # Знаки с предшествующим пробелом… нехорошо!
-          # /(\p{L}|>|\p{Nd}) +([?!:,;…])/ => '\1\2',
+          # -/(\p{L}|>|\p{Nd}) +([?!:,;…])/ => '\1\2',
           # /([?!:,;])(\p{L}|<)/ => '\1 \2',
           # Для точки отдельно
           /(\p{L})\p{Zs}(?:\.)(\p{Zs}|$)/ => '\1.\2',
@@ -139,12 +162,12 @@ module Typograph
           # Неразрывные названия организаций и абревиатуры форм собственности
           # ~ почему не один &nbsp;?
           # ! названия организаций тоже могут содержать пробел !
-          /(#{abbr})\p{Zs}+(«[^»]*»)/ => '<nobr>\1 \2</nobr>',
+          /(#{@abbr})\p{Zs}+(«[^»]*»)/ => '<nobr>\1 \2</nobr>',
 
           # Нельзя отрывать сокращение от относящегося к нему слова.
           # Например: тов. Сталин, г. Воронеж
           # Ставит пробел, если его нет.
-          /(^|[^a-zA-Zа-яА-Я])(#{shortages})\.\s?([А-Я0-9]+)/m => '\1\2.&nbsp;\3',
+          /(^|[^a-zA-Zа-яА-Я])(#{@shortages})\.\s?([А-Я0-9]+)/m => '\1\2.&nbsp;\3',
           /(^|[^a-zA-Zа-яА-Я])(см)\.\s?([А-Яа-я]+)/m => '\1\2.&nbsp;\3',
 
           # Не отделять стр., с. и т.д. от номера.
@@ -156,48 +179,48 @@ module Typograph
           /(\d\d\.\d\d\.\d\d\d?\d?)(\s|&nbsp;)*г\.?(\s|&nbsp;)/ => "<nobr>\\1 г.</nobr> ",
 
           # Неразрывный пробел между цифрой и единицей измерения
-          /(\p{Nd}+)\s*(#{measure})/m => '\1&nbsp;\2',
+          /(\p{Nd}+)\s*(#{@measure})/m => '\1&nbsp;\2',
 
           # Сантиметр и другие ед. измерения в квадрате, кубе и т.д.
-          /(\p{Zs}#{metrics})2/ => '\1&sup2;',
-          /(\p{Zs}#{metrics})3/ => '\1&sup3;',
-          /(\p{Zs}#{metrics})(\p{Nd}+)/ => '\1<sup>\2</sup>',
+          /(\p{Zs}#{@metrics})2/ => '\1&sup2;',
+          /(\p{Zs}#{@metrics})3/ => '\1&sup3;',
+          /(\p{Zs}#{@metrics})(\p{Nd}+)/ => '\1<sup>\2</sup>',
 
           # Знак дефиса или два знака дефиса подряд — на знак длинного тире.
           # + Нельзя разрывать строку перед тире, например: Знание&nbsp;— сила, Курить&nbsp;— здоровью вредить.
-          /\p{Zs}+(?:--?|—)(?=\p{Zs})/ => "&nbsp;#{mdash}",
-          /^(?:--?|—)(?=\p{Zs})/ => mdash,
+          /\p{Zs}+(?:--?|—)(?=\p{Zs})/ => "&nbsp;#{@mdash}",
+          /^(?:--?|—)(?=\p{Zs})/ => @mdash,
 
           # Прямая речь
           /(?:^|\s+)(?:--?|—)(?=\p{Zs})/ => '\0',
 
           # Знак дефиса, ограниченный с обоих сторон цифрами — на знак короткого тире.
-          /(?<=\p{Nd})-(?=\p{Nd})/ => minus,
+          /(?<=\p{Nd})-(?=\p{Nd})/ => @minus,
 
           # Знак дефиса, ограниченный с обоих сторон пробелами — на знак длинного тире.
-          /(\s)(&ndash;|–)(\s)/ => "&nbsp;#{mdash} ",
+          /(\s)(&ndash;|–)(\s)/ => "&nbsp;#{@mdash} ",
 
           # Знак дефиса, идущий после тэга и справа пробел — на знак длинного тире.
-          /(?<=>)(&ndash;|–|-)(\s)/ => "#{mdash} ",
+          /(?<=>)(&ndash;|–|-)(\s)/ => "#{@mdash} ",
 
           # Расстановка дефиса перед -ка, -де, -кась
           # /\b(\S+)[\s-](ка|де|кась)\b/ => "<nobr>\\1#{ndash}\\2</nobr>",
 
           # Расстановка дефиса после кое-, кой-
-          /\b(кое|кой)[\s-](как|кого|какой)\b/i => "<nobr>\\1#{ndash}\\2</nobr>",
+          /\b(кое|кой)[\s-](как|кого|какой)\b/i => "<nobr>\\1#{@ndash}\\2</nobr>",
 
           # Расстановка дефиса перед -то, -либо, -нибудь
 ### to od          /(кто|что|где|когда|почему|зачем|кем|чем|как|чего)(\s|-|–|—|&nbsp;)+(либо|нибудь|то)([^:]|$)/i => "<nobr>\\1#{ndash}\\3</nobr>\\4",
 
           # Расстановка дефиса перед -таки
-          /(все)(\s|-|–|—|&nbsp;)+(таки)/i => "<nobr>\\1#{ndash}\\3</nobr>",
+          /(все)(\s|-|–|—|&nbsp;)+(таки)/i => "<nobr>\\1#{@ndash}\\3</nobr>",
 
           # Расстановка дефисов в предлогах «из-за», «из-под», «по-над», «по-под».
-          /\b(из)[\s-]?(за|под)\b/i => "<nobr>\\1#{ndash}\\2</nobr>",
-          /\b(по)[\s-]?(над|под)\b/i => "<nobr>\\1#{ndash}\\2</nobr>",
+          /\b(из)[\s-]?(за|под)\b/i => "<nobr>\\1#{@ndash}\\2</nobr>",
+          /\b(по)[\s-]?(над|под)\b/i => "<nobr>\\1#{@ndash}\\2</nobr>",
 
           # Нельзя оставлять в конце строки предлоги и союзы
-          /(?<=\p{Zs}|^|\p{^L})(#{prepos})(\s+)/i => '\1&nbsp;',
+          /(?<=\p{Zs}|^|\p{^L})(#{@prepos})(\s+)/i => '\1&nbsp;',
 
           # Нельзя отрывать частицы бы, ли, же от предшествующего слова, например: как бы, вряд ли, так же.
           /(?<=\p{^Zs})(\p{Zs}+)(ж|бы|б|же|ли|ль|либо)(?=(<.*?>)*[\p{Zs})!?.…])/i => '&nbsp;\2',
@@ -207,13 +230,13 @@ module Typograph
           /([А-ЯA-Z]\.)\s?([А-ЯA-Z]\.)\p{Zs}?([А-ЯA-Z][а-яa-z]+)/m => '\1\2&nbsp;\3',
 
           # Сокращения сумм не отделяются от чисел.
-          /(\p{Nd}+)\p{Zs}?(#{countables})/m   =>  '\1&nbsp;\2',
+          /(\p{Nd}+)\p{Zs}?(#{@countables})/m   =>  '\1&nbsp;\2',
 
           # «уе» в денежных суммах
-          /(\p{Nd}+|#{countables})\p{Zs}?уе/m  =>  '\1&nbsp;у.е.',
+          /(\p{Nd}+|#{@countables})\p{Zs}?уе/m  =>  '\1&nbsp;у.е.',
 
           # Денежные суммы, расставляя пробелы в нужных местах.
-          /(\p{Nd}+|#{countables})\p{Zs}?(#{money})/m  =>  '\1&nbsp;\2',
+          /(\p{Nd}+|#{@countables})\p{Zs}?(#{@money})/m  =>  '\1&nbsp;\2',
 
           # Неразрывные пробелы в кавычках
           # "/($sym[lquote]\S*)(\s+)(\S*$sym[rquote])/U" => '\1'.\sym["nbsp"].'\3',
@@ -243,71 +266,7 @@ module Typograph
           /Ё/ => 'Е',
 
         }
-
-        # Неразрывный пробел перед последним словом в тексте
-        @rules_main[/(\s)(\S+)\Z/] = '&nbsp;\2' if options[:orphan]
-
       end
-
-      def apply_rules(rules, str)
-        res = str.dup
-        rules.each do |rul, rep|
-          str.gsub!(rul, rep)
-        end
-        str
-      end
-
-      def process(str)
-        str = apply_rules(@rules_strict, str) #  Сначала применим строгие правила: пробелы, запятые
-        str = replace_russian_quotes str
-        str = replace_english_quotes str
-        str = apply_rules(@rules_main, str)
-        str = apply_rules(@rules_symbols, str)
-        str = apply_rules(@rules_braces, str)
-      end
-
-      private
-
-      def replace_russian_quotes(str)
-        left1  = Typograph::Adapter::SPECIAL[:laquo]
-        right1 = Typograph::Adapter::SPECIAL[:raquo]
-        left2  = Typograph::Adapter::SPECIAL[:ldquo]
-        right2 = Typograph::Adapter::SPECIAL[:rdquo]
-        str = replace_quotes str, left1, right1, left2, right2, 'а-яА-Я'
-      end
-
-      def replace_english_quotes(str)
-        left1  = Typograph::Adapter::SPECIAL[:ldquo]
-        right1 = Typograph::Adapter::SPECIAL[:rdquo]
-        left2  = Typograph::Adapter::SPECIAL[:lsquo]
-        right2 = Typograph::Adapter::SPECIAL[:rsquo]
-        str = replace_quotes str, left1, right1, left2, right2, 'a-zA-Z'
-      end
-
-      def replace_quotes(str,left1,right1,left2,right2,letters)
-        replace_quotes = lambda do
-          old_str = String.new(str)
-          str.gsub!(Regexp.new("(\"|\')([#{letters}].*?[^\\s])\\1", Regexp::MULTILINE | Regexp::IGNORECASE)) do |match|
-            inside, before, after = $2, $`, $'
-            if after.match(/^([^<]+>|>)/) || before.match(/<[^>]+$/) #inside tag
-              match
-            else
-              "#{left1}#{inside}#{right1}"
-            end
-          end
-          old_str != str
-        end
-        while replace_quotes.call do end
-        replace_second_level_quotes = lambda do
-          str.gsub! Regexp.new("#{left1}(.*)#{left1}(.*)#{right1}(.*)#{right1}", Regexp::MULTILINE | Regexp::IGNORECASE) do |match|
-            "#{left1}#{$1}#{left2}#{$2}#{right2}#{$3}#{right1}"
-          end
-        end
-        while replace_second_level_quotes.call do end
-        str
-      end
-
-
 
     end
   end

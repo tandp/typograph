@@ -24,7 +24,7 @@ module Typograph
 
     # Вызывает типограф, обходя html-блоки и безопасные блоки
     def process(str)
-      str = @profile.normalize(str)
+      str = @adapter.normalize(str)
       
       @safe_blocks = {}
       str.gsub!(safe_blocks) do |match|
@@ -33,7 +33,9 @@ module Typograph
         key
       end
 
-      str = @profile.process(str)
+      str = @quotes.process str
+      str = @russian_grammar.process str
+      
 
       if @safe_blocks
         str.gsub! /(<\d>)/ do |match|
@@ -42,17 +44,19 @@ module Typograph
       end
       @safe_blocks = {}
 
-      # выдераем дублирующиеся nowrap
-      str.gsub!(/(\<(\/?nobr)\>)+/i, '\1')
-      str.gsub! /<nobr>(.*?)<\/nobr>/ do |match|
-        match.to_s.gsub('&nbsp;', ' ')
-      end
+      # # выдераем дублирующиеся nowrap
+      # str.gsub!(/(\<(\/?nobr)\>)+/i, '\1')
+      # str.gsub! /<nobr>(.*?)<\/nobr>/ do |match|
+      #   match.to_s.gsub('&nbsp;', ' ')
+      # end
     
       str
     end
 
     def initialize(options = {})
-      @profile = Adapters::Russian.new options
+      @adapter         = Adapter.new options
+      @russian_grammar = Processors::RussianGrammar.new options
+      @quotes          = Processors::Quotes.new options
     end
   end
 end

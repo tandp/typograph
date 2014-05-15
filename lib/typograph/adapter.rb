@@ -51,9 +51,6 @@ module Typograph
     def normalize(str)
       # Убираем неразрывные пробелы
       str.gsub!(/&nbsp;| /, ' ')
-      # Приводим кавычки к «"»
-      str.gsub!(/(„|“|&quot;)/, '"')
-      # 
       str.chomp(" \r\n\t")
       HTMLEntities.new.decode(str)
     end
