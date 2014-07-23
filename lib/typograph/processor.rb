@@ -13,6 +13,12 @@ module Typograph
       ['<code[^>]*>','</code>']
     ]
 
+    def initialize(options={})
+      @adapter         = Adapter.new options
+      @russian_grammar = Processors::RussianGrammar.new options
+      @quotes          = Processors::Quotes.new options
+    end
+
     def safe_blocks
       @pattern ||= begin
         pattern = SAFE_BLOCKS.map do |val|
@@ -22,7 +28,6 @@ module Typograph
       end
     end
 
-    # Вызывает типограф, обходя html-блоки и безопасные блоки
     def process(str)
       str = @adapter.normalize(str)
       
@@ -43,20 +48,9 @@ module Typograph
         end
       end
       @safe_blocks = {}
-
-      # # выдераем дублирующиеся nowrap
-      # str.gsub!(/(\<(\/?nobr)\>)+/i, '\1')
-      # str.gsub! /<nobr>(.*?)<\/nobr>/ do |match|
-      #   match.to_s.gsub('&nbsp;', ' ')
-      # end
     
       str
     end
 
-    def initialize(options = {})
-      @adapter         = Adapter.new options
-      @russian_grammar = Processors::RussianGrammar.new options
-      @quotes          = Processors::Quotes.new options
-    end
   end
 end

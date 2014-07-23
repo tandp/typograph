@@ -47,9 +47,7 @@ module Typograph
       res
     end
 
-    # Приводим символы в строке к единой форме для последующей обработки
     def normalize(str)
-      # Убираем неразрывные пробелы
       str.gsub!(/&nbsp;| /, ' ')
       str.chomp(" \r\n\t")
       HTMLEntities.new.decode(str)
