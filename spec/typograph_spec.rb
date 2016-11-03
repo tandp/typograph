@@ -84,7 +84,7 @@ describe '.process' do
 
   it 'Удаление пробела перед символом процент' do
     text = '100 %'
-    text_processed = '100%'
+    text_processed = '100 %'
     Typograph.process(text, OPT).should eq text_processed
   end
 
@@ -177,7 +177,7 @@ describe '.process' do
 
   it 'Расстановка правильных «тройных» кавычек' do
     text = 'Она добавила: "И цвет мой самый любимый - "эсмеральда"".'
-    text_processed = 'Она добавила: «И&nbsp;цвет мой самый любимый&nbsp;— “эсмеральда”».'
+    text_processed = 'Она добавила: «И&nbsp;цвет мой самый любимый&nbsp;— «эсмеральда»».'
     Typograph.process(text, OPT).should eq text_processed
   end
 
@@ -307,6 +307,12 @@ describe '.process' do
     Typograph.process(text, OPT).should eq text_processed
   end
 
+  it 'Наразрывный пробел между инициалами, если присутствует пробел' do
+    text = 'А. С. Пушкин'
+    text_processed = 'А.&nbsp;С.&nbsp;Пушкин'
+    Typograph.process(text, OPT).should eq text_processed
+  end
+
   it 'Замена символа градус, плюс-минус' do
     text = '+- 10, +/- 25'
     text_processed = '± 10, ± 25'
@@ -346,8 +352,8 @@ describe '.process' do
   end
 
   it 'Обработка тегов <pre>' do
-    text = %q{<pre>   Я не хотел бы  
-    чтобы этот текст 
+    text = %q{<pre>   Я не хотел бы
+    чтобы этот текст
     был   форматирован.</pre>}
     text_processed = text.dup
     Typograph.process(text, OPT).should eq text_processed
@@ -418,13 +424,25 @@ describe '.process' do
 
   it "should make english and russian quotes in the same string" do
     text           = '"Quotes" и "Кавычки"'
-    text_processed = '“Quotes” и&nbsp;«Кавычки»'
+    text_processed = '«Quotes» и&nbsp;«Кавычки»'
     Typograph.process(text, OPT).should eq text_processed
   end
 
   it 'Quotes second level' do
     text          = '"Кавычки "второго уровня"" and "Quotes "second level""'
-    text_processed = "«Кавычки “второго уровня”» and “Quotes ‘second level’”"
+    text_processed = "«Кавычки «второго уровня»» and «Quotes «second level»»"
+    Typograph.process(text, OPT).should eq text_processed
+  end
+
+  it 'Ставим запятую перед а' do
+    text          = 'Не так а эдак'
+    text_processed = "Не&nbsp;так, а&nbsp;эдак"
+    Typograph.process(text, OPT).should eq text_processed
+  end
+
+  it 'Не ставим запятую перед а, если используется вместе с ну' do
+    text          = 'Ну а впрочем'
+    text_processed = "Ну а&nbsp;впрочем"
     Typograph.process(text, OPT).should eq text_processed
   end
 
