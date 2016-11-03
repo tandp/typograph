@@ -84,7 +84,7 @@ describe '.process' do
 
   it 'Удаление пробела перед символом процент' do
     text = '100 %'
-    text_processed = '100%'
+    text_processed = '100 %'
     Typograph.process(text, OPT).should eq text_processed
   end
 
@@ -304,6 +304,12 @@ describe '.process' do
   it 'Привязка инициалов к фамилиям' do
     text = 'А.С.Пушкин, Пушкин А.С.'
     text_processed = 'А.С.&nbsp;Пушкин, Пушкин А.С.'
+    Typograph.process(text, OPT).should eq text_processed
+  end
+
+  it 'Наразрывный пробел между инициалами, если присутствует пробел' do
+    text = 'А. С. Пушкин'
+    text_processed = 'А.&nbsp;С.&nbsp;Пушкин'
     Typograph.process(text, OPT).should eq text_processed
   end
 
