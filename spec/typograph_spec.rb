@@ -434,4 +434,16 @@ describe '.process' do
     Typograph.process(text, OPT).should eq text_processed
   end
 
+  it 'Ставим запятую перед а' do
+    text          = 'Не так а эдак'
+    text_processed = "Не&nbsp;так, а&nbsp;эдак"
+    Typograph.process(text, OPT).should eq text_processed
+  end
+
+  it 'Не ставим запятую перед а, если используется вместе с ну' do
+    text          = 'Ну а впрочем'
+    text_processed = "Ну а&nbsp;впрочем"
+    Typograph.process(text, OPT).should eq text_processed
+  end
+
 end
