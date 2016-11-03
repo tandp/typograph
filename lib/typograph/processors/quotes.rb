@@ -47,8 +47,8 @@ module Typograph
       end
 
       def replace_english_quotes(str,lang=EN)
-        left1  = SPECIAL[:ldquo]
-        right1 = SPECIAL[:rdquo]
+        left1  = SPECIAL[:laquo]
+        right1 = SPECIAL[:raquo]
         left2  = SPECIAL[:lsquo]
         right2 = SPECIAL[:rsquo]
         str = replace_quotes str, left1, right1, left2, right2, lang
@@ -68,13 +68,16 @@ module Typograph
           old_str != str
         end
         while replace_quotes.call do end
-        replace_second_level_quotes = lambda do 
-          regexp = "(#{left1}([^#{right1},.])*)#{left1}(.*)#{right1}(.*#{right1})"
-          str.gsub! Regexp.new(regexp, Regexp::MULTILINE | Regexp::IGNORECASE) do |text|
-            "#{$1}#{left2}#{$3}#{right2}#{$4}"
-          end
-        end
-        while replace_second_level_quotes.call do end
+
+        # commented out because uses only laquo/raquo
+
+        # replace_second_level_quotes = lambda do
+        #   regexp = "(#{left1}([^#{right1},.])*)#{left1}(.*)#{right1}(.*#{right1})"
+        #   str.gsub! Regexp.new(regexp, Regexp::MULTILINE | Regexp::IGNORECASE) do |text|
+        #     "#{$1}#{left2}#{$3}#{right2}#{$4}"
+        #   end
+        # end
+        # while replace_second_level_quotes.call do end
         str
       end
 
