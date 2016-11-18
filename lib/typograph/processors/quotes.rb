@@ -26,6 +26,7 @@ module Typograph
         if @options.nil? || @options[:only].nil?
           str = replace_russian_quotes str
           str = replace_english_quotes str
+          str = replace_broken_quotes str
         else
           if @options[:only].include? :ru
             str = replace_russian_quotes str, RU+EN
@@ -33,6 +34,8 @@ module Typograph
             str = replace_english_quotes str, RU+EN
           end
         end
+
+        str = replace_broken_quotes str
         str
       end
 
@@ -44,6 +47,12 @@ module Typograph
         left2  = SPECIAL[:ldquo]
         right2 = SPECIAL[:rdquo]
         str = replace_quotes str, left1, right1, left2, right2, lang
+      end
+
+      def replace_broken_quotes(str)
+        str.gsub!(SPECIAL[:ldquo], SPECIAL[:laquo])
+        str.gsub!(SPECIAL[:rdquo], SPECIAL[:raquo])
+        str
       end
 
       def replace_english_quotes(str,lang=EN)
