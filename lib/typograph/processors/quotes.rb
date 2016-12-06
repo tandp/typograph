@@ -15,8 +15,8 @@ module Typograph
         :raquo => '»',
         :acute => '´',
       }
-      RU = 'А-я'
-      EN = 'A-z'
+      RU = 'А-я0-9'
+      EN = 'A-z0-9'
 
       def initialize(options)
         @options = options
