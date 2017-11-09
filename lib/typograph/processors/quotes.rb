@@ -24,10 +24,12 @@ module Typograph
 
       def process(str)
         if @options.nil? || @options[:only].nil?
+          str = fix_non_russian_quotes str
           str = replace_russian_quotes str
           str = replace_english_quotes str
         else
           if @options[:only].include? :ru
+            str = fix_non_russian_quotes str
             str = replace_russian_quotes str, RU+EN
           elsif @options[:only].include? :en
             str = replace_english_quotes str, RU+EN
@@ -37,6 +39,11 @@ module Typograph
       end
 
       private
+
+      # Нормализуем английские кавычки вокруг русских букв
+      def fix_non_russian_quotes(str)
+        str.gsub(Regexp.new("#{SPECIAL[:ldquo]}([#{RU}].*?[^\\s])#{SPECIAL[:rdquo]}", Regexp::MULTILINE | Regexp::IGNORECASE), '"\1"')
+      end
 
       def replace_russian_quotes(str,lang=RU)
         left1  = SPECIAL[:laquo]
