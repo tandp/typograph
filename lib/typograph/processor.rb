@@ -43,7 +43,7 @@ module Typograph
       
 
       if @safe_blocks
-        str.gsub! /(<\d>)/ do |match|
+        str.gsub! /(<\d+>)/ do |match|
           @safe_blocks[match]
         end
       end
